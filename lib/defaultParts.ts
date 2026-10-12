@@ -1,0 +1,81 @@
+import type { PartConfig } from './types';
+
+/**
+ * A procedurally described "industrial unit" built from primitives.
+ * Using data instead of a GLB keeps the repo asset-free and shows how a
+ * backend could drive scene composition.
+ */
+export const DEFAULT_PARTS: PartConfig[] = [
+  {
+    id: 'base',
+    name: 'Base Plate',
+    geometry: 'box',
+    args: [3, 0.3, 2],
+    position: [0, 0.15, 0],
+    rotation: [0, 0, 0],
+    scale: [1, 1, 1],
+    color: '#3a4250',
+    metalness: 0.7,
+    roughness: 0.35,
+  },
+  {
+    id: 'column',
+    name: 'Column',
+    geometry: 'cylinder',
+    args: [0.25, 0.3, 2, 32],
+    position: [-0.8, 1.3, 0],
+    rotation: [0, 0, 0],
+    scale: [1, 1, 1],
+    color: '#c9ced6',
+    metalness: 0.9,
+    roughness: 0.2,
+  },
+  {
+    id: 'arm',
+    name: 'Arm',
+    geometry: 'box',
+    args: [1.8, 0.2, 0.3],
+    position: [0.1, 2.2, 0],
+    rotation: [0, 0, -0.08],
+    scale: [1, 1, 1],
+    color: '#f2a93b',
+    metalness: 0.3,
+    roughness: 0.5,
+  },
+  {
+    id: 'joint',
+    name: 'Joint',
+    geometry: 'sphere',
+    args: [0.28, 32, 32],
+    position: [-0.8, 2.3, 0],
+    rotation: [0, 0, 0],
+    scale: [1, 1, 1],
+    color: '#20242c',
+    metalness: 0.8,
+    roughness: 0.25,
+  },
+  {
+    id: 'head',
+    name: 'Tool Head',
+    geometry: 'cone',
+    args: [0.22, 0.6, 32],
+    position: [0.95, 1.8, 0],
+    rotation: [Math.PI, 0, 0],
+    scale: [1, 1, 1],
+    color: '#e5484d',
+    metalness: 0.4,
+    roughness: 0.4,
+  },
+  {
+    id: 'ring',
+    name: 'Bearing Ring',
+    geometry: 'torus',
+    args: [0.38, 0.06, 16, 48],
+    position: [-0.8, 0.45, 0],
+    rotation: [Math.PI / 2, 0, 0],
+    scale: [1, 1, 1],
+    color: '#8b95a5',
+    metalness: 1,
+    roughness: 0.15,
+  },
+];
