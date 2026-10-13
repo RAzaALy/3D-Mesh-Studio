@@ -1,10 +1,10 @@
 'use client';
 
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import type { Mesh } from 'three';
 import type { ThreeEvent } from '@react-three/fiber';
 import { Outlines } from '@react-three/drei';
-import { useScene } from '@/lib/store';
+import { useScene, useSceneApi } from '@/lib/store';
 import { meshRegistry } from '@/lib/meshRegistry';
 import type { PartConfig } from '@/lib/types';
 
@@ -33,10 +33,9 @@ function SelectableMeshImpl({ part }: { part: PartConfig }) {
   const ref = useRef<Mesh>(null);
   const isSelected = useScene((s) => s.selectedId === part.id);
   const isHovered = useScene((s) => s.hoveredId === part.id);
-  const quality = useScene((s) => s.quality);
   const select = useScene((s) => s.select);
   const hover = useScene((s) => s.hover);
-  const [pressed, setPressed] = useState(false);
+  const api = useSceneApi();
 
   useEffect(() => {
     const mesh = ref.current;
@@ -53,7 +52,9 @@ function SelectableMeshImpl({ part }: { part: PartConfig }) {
     document.body.style.cursor = 'pointer';
   };
   const onOut = () => {
-    hover(null);
+    // Moving straight onto another part fires its "over" before our "out";
+    // only clear the hover if it still points at us.
+    if (api.getState().hoveredId === part.id) hover(null);
     document.body.style.cursor = 'auto';
   };
   const onClick = (e: ThreeEvent<MouseEvent>) => {
@@ -73,12 +74,10 @@ function SelectableMeshImpl({ part }: { part: PartConfig }) {
       position={part.position}
       rotation={part.rotation}
       scale={part.scale}
-      castShadow={quality === 'high'}
+      castShadow
       receiveShadow
       onPointerOver={onOver}
       onPointerOut={onOut}
-      onPointerDown={() => setPressed(true)}
-      onPointerUp={() => setPressed(false)}
       onClick={onClick}
     >
       <Geometry part={part} />
@@ -87,7 +86,7 @@ function SelectableMeshImpl({ part }: { part: PartConfig }) {
         metalness={part.metalness}
         roughness={part.roughness}
         emissive={emissive}
-        emissiveIntensity={pressed ? emissiveIntensity * 1.5 : emissiveIntensity}
+        emissiveIntensity={emissiveIntensity}
       />
       {(isSelected || isHovered) && (
         <Outlines thickness={isSelected ? 0.03 : 0.015} color={isSelected ? '#2f6fed' : '#ffffff'} />

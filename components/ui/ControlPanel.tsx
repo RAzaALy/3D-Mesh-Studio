@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useScene } from '@/lib/store';
-import type { TransformMode } from '@/lib/types';
+import { useScene, useSceneApi } from '@/lib/store';
+import type { PartsResponse, TransformMode } from '@/lib/types';
 
 const MODES: { mode: TransformMode; label: string; key: string }[] = [
   { mode: 'translate', label: 'Move', key: 'W' },
@@ -10,28 +10,39 @@ const MODES: { mode: TransformMode; label: string; key: string }[] = [
   { mode: 'scale', label: 'Scale', key: 'R' },
 ];
 
+const KEY_TO_MODE: Record<string, TransformMode> = { w: 'translate', e: 'rotate', r: 'scale' };
+
 const fmt = (v: number[]) => v.map((n) => n.toFixed(2)).join(', ');
 
+function isTypingTarget(el: EventTarget | null) {
+  const node = el as HTMLElement | null;
+  return !!node && (node.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName));
+}
+
 export function ControlPanel() {
+  const api = useSceneApi();
   const parts = useScene((s) => s.parts);
   const selectedId = useScene((s) => s.selectedId);
   const mode = useScene((s) => s.mode);
   const dirty = useScene((s) => s.dirty);
   const saveState = useScene((s) => s.saveState);
   const showTelemetry = useScene((s) => s.showTelemetry);
-  const quality = useScene((s) => s.quality);
-  const { select, setMode, updatePart, reset, setSaveState, setParts, toggleTelemetry } = useScene.getState();
+  const dpr = useScene((s) => s.dpr);
+  const select = useScene((s) => s.select);
+  const setMode = useScene((s) => s.setMode);
+  const updatePart = useScene((s) => s.updatePart);
+  const reset = useScene((s) => s.reset);
+  const toggleTelemetry = useScene((s) => s.toggleTelemetry);
 
   const selected = parts.find((p) => p.id === selectedId) ?? null;
 
-  // Editor-style shortcuts (same as Blender/Unity: W/E/R, Esc).
+  // Editor-style shortcuts (Blender/Unity convention): W/E/R, Esc.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+      // Leave browser shortcuts (Ctrl+R reload, Cmd+W close...) and text fields alone.
+      if (e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return;
       const k = e.key.toLowerCase();
-      if (k === 'w') setMode('translate');
-      else if (k === 'e') setMode('rotate');
-      else if (k === 'r') setMode('scale');
+      if (KEY_TO_MODE[k]) setMode(KEY_TO_MODE[k]);
       else if (k === 'escape') select(null);
     };
     window.addEventListener('keydown', onKey);
@@ -39,15 +50,16 @@ export function ControlPanel() {
   }, [setMode, select]);
 
   const save = async () => {
+    const { setSaveState, setParts } = api.getState();
     setSaveState('saving');
     try {
       const res = await fetch('/api/parts', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ parts: useScene.getState().parts }),
+        body: JSON.stringify({ parts: api.getState().parts }),
       });
       if (!res.ok) throw new Error(String(res.status));
-      const data = await res.json();
+      const data = (await res.json()) as PartsResponse;
       setParts(data.parts);
       setSaveState('saved');
     } catch {
@@ -56,19 +68,19 @@ export function ControlPanel() {
   };
 
   return (
-    <aside className="panel">
+    <aside className="panel" aria-label="Scene controls">
       <header>
         <h1>Mesh Studio</h1>
         <p className="muted">Click a part to select · drag gizmo to transform</p>
       </header>
 
-      <section>
-        <h2>Parts</h2>
+      <section aria-labelledby="parts-heading">
+        <h2 id="parts-heading">Parts</h2>
         <ul className="parts">
           {parts.map((p) => (
             <li key={p.id}>
-              <button className={p.id === selectedId ? 'active' : ''} onClick={() => select(p.id)}>
-                <span className="swatch" style={{ background: p.color }} />
+              <button className={p.id === selectedId ? 'active' : ''} aria-pressed={p.id === selectedId} onClick={() => select(p.id)}>
+                <span className="swatch" style={{ background: p.color }} aria-hidden />
                 {p.name}
               </button>
             </li>
@@ -76,11 +88,17 @@ export function ControlPanel() {
         </ul>
       </section>
 
-      <section>
-        <h2>Transform</h2>
-        <div className="seg">
+      <section aria-labelledby="transform-heading">
+        <h2 id="transform-heading">Transform</h2>
+        <div className="seg" role="group" aria-label="Transform mode">
           {MODES.map((m) => (
-            <button key={m.mode} className={mode === m.mode ? 'active' : ''} onClick={() => setMode(m.mode)}>
+            <button
+              key={m.mode}
+              className={mode === m.mode ? 'active' : ''}
+              aria-pressed={mode === m.mode}
+              aria-keyshortcuts={m.key}
+              onClick={() => setMode(m.mode)}
+            >
               {m.label} <kbd>{m.key}</kbd>
             </button>
           ))}
@@ -88,15 +106,15 @@ export function ControlPanel() {
       </section>
 
       {selected ? (
-        <section>
-          <h2>{selected.name}</h2>
+        <section aria-labelledby="selected-heading" data-testid="properties">
+          <h2 id="selected-heading">{selected.name}</h2>
           <dl className="readout">
             <dt>Position</dt>
-            <dd>{fmt(selected.position)}</dd>
+            <dd data-testid="readout-position">{fmt(selected.position)}</dd>
             <dt>Rotation</dt>
-            <dd>{fmt(selected.rotation)}</dd>
+            <dd data-testid="readout-rotation">{fmt(selected.rotation)}</dd>
             <dt>Scale</dt>
-            <dd>{fmt(selected.scale)}</dd>
+            <dd data-testid="readout-scale">{fmt(selected.scale)}</dd>
           </dl>
           <label>
             Color
@@ -129,14 +147,14 @@ export function ControlPanel() {
         <section className="muted">No part selected.</section>
       )}
 
-      <section>
-        <h2>Visualization</h2>
+      <section aria-labelledby="viz-heading">
+        <h2 id="viz-heading">Visualization</h2>
         <label className="row">
           <input type="checkbox" checked={showTelemetry} onChange={toggleTelemetry} />
           Live sensor heatmap
         </label>
         <p className="muted small">
-          Render quality: <strong>{quality}</strong> (auto-adjusted by PerformanceMonitor)
+          Render resolution: <strong data-testid="dpr">{dpr}x</strong> (auto-tuned to keep frame rate smooth)
         </p>
       </section>
 
@@ -145,7 +163,9 @@ export function ControlPanel() {
         <button className="primary" disabled={!dirty || saveState === 'saving'} onClick={save}>
           {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : 'Save to API'}
         </button>
-        {saveState === 'error' && <p className="error">Save failed — try again.</p>}
+        <p className="status" role="status" aria-live="polite">
+          {saveState === 'error' ? <span className="error">Save failed — try again.</span> : null}
+        </p>
       </footer>
     </aside>
   );

@@ -1,21 +1,14 @@
-'use client';
+import { StudioApp } from '@/components/StudioApp';
+import { partsRepository } from '@/lib/partsRepository';
 
-import dynamic from 'next/dynamic';
-import { ControlPanel } from '@/components/ui/ControlPanel';
+// The saved scene can change at any time, so render per request (it's a cheap render).
+export const dynamic = 'force-dynamic';
 
-// WebGL needs `window`; load the canvas on the client only and keep three.js out of the server bundle.
-const Experience = dynamic(() => import('@/components/scene/Experience'), {
-  ssr: false,
-  loading: () => <div className="loader">Loading 3D scene…</div>,
-});
-
+/**
+ * Server Component: reads the saved scene directly (no HTTP round trip) and embeds it
+ * in the HTML. The browser no longer has to download the 3D bundle and *then* fetch
+ * `/api/parts`; the side panel also shows the real saved values on first paint.
+ */
 export default function Home() {
-  return (
-    <main className="layout">
-      <div className="viewport">
-        <Experience />
-      </div>
-      <ControlPanel />
-    </main>
-  );
+  return <StudioApp initialParts={partsRepository.get().parts} />;
 }
