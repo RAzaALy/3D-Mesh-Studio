@@ -3,11 +3,21 @@
   "version": "1.0.0",
   "description": "Interactive browser-based 3D product visualizer built with Next.js 14, React Three Fiber and Drei",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbo",
+    "dev:webpack": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "smoke": "npm run typecheck && npm run lint && npm test && npm run build && npm run test:smoke",
+    "test:all": "npm run typecheck && npm run lint && npm run test:coverage && npm run build && npm run test:e2e",
+    "perf": "node scripts/measure-load.mjs",
+    "docs:screenshot": "node scripts/annotate-screenshot.mjs"
   },
   "author": "Raza Aly",
   "license": "MIT",
@@ -21,13 +31,22 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
     "@types/node": "^20.16.11",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "@types/three": "^0.169.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^2.1.9",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.15",
-    "typescript": "^5.6.3"
+    "jsdom": "^25.0.1",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.9"
   },
   "private": true
 }
